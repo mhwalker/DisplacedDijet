@@ -179,8 +179,8 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      }
 
      dijetHolder.CorrPt = (goodVtx ? physicsP4.Pt() : -1);
-     dijetHolder.CorrEta = (goodVtx ? physicsP4.Eta() : -1);
-     dijetHolder.CorrPhi = (goodVtx ? physicsP4.Phi() : -1);
+     dijetHolder.CorrEta = (goodVtx ? physicsP4.Eta() : -999);
+     dijetHolder.CorrPhi = (goodVtx ? physicsP4.Phi() : -999);
      dijetHolder.CorrMass = (goodVtx ? physicsP4.M() : -1);
 
      dijetHolder.Lxy = goodVtx ? lxy : -1;
