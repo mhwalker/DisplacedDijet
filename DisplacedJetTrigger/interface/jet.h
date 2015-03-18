@@ -1,9 +1,9 @@
-#ifndef UsercodeCMS_DisplacedJetTrigger_jet_h
-#define UsercodeCMS_DisplacedJetTrigger_jet_h
+#ifndef DisplacedDijet_DisplacedJetTrigger_jet_h
+#define DisplacedDijet_DisplacedJetTrigger_jet_h
 
 #include <vector>
 #include "FWCore/Utilities/interface/typedefs.h"
-#include "UsercodeCMS/DisplacedJetTrigger/interface/track.h"
+#include "DisplacedDijet/DisplacedJetTrigger/interface/track.h"
 
 struct jet {
 

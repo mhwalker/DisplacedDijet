@@ -1,5 +1,5 @@
-#ifndef UsercodeCMS_DisplacedJetTrigger_track_h
-#define UsercodeCMS_DisplacedJetTrigger_track_h
+#ifndef DisplacedDijet_DisplacedJetTrigger_track_h
+#define DisplacedDijet_DisplacedJetTrigger_track_h
 
 struct track {
 

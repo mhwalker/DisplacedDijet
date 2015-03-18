@@ -1,4 +1,5 @@
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/DJ_DiJetVertices.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_DiJetVertices.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DisplacedDijet.h"
 
 DJ_DiJetVertices::DJ_DiJetVertices(const edm::ParameterSet& iConfig) : 
 patJetCollectionTag_(iConfig.getParameter<edm::InputTag>("patJetCollectionTag")),
@@ -11,85 +12,13 @@ PV_(iConfig.getParameter<unsigned int>("PV")),
 vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexfitter")),
 vtxfitter_(vtxconfig_) {
 
-   produces<std::vector<float> > ("dijetCorrPt");
-   produces<std::vector<float> > ("dijetCorrEta");
-   produces<std::vector<float> > ("dijetCorrPhi");
-   produces<std::vector<float> > ("dijetCorrMass");
-   produces<std::vector<int> > ("dijetNPromptTracks");
-   produces<std::vector<int> > ("dijetNDispTracks");
-   produces<std::vector<float> > ("dijetPromptEnergyFrac");
-   produces<std::vector<float> > ("dijetLxy");
-   produces<std::vector<float> > ("dijetLxysig");
-   produces<std::vector<float> > ("dijetVtxX");
-   produces<std::vector<float> > ("dijetVtxY");
-   produces<std::vector<float> > ("dijetVtxZ");
-   produces<std::vector<float> > ("dijetVtxChi2");
-   produces<std::vector<float> > ("dijetVtxmass");
-   produces<std::vector<float> > ("dijetVtxpt");
-   produces<std::vector<int> > ("dijetVtxN");
-   produces<std::vector<int> > ("dijetVtxN1");
-   produces<std::vector<int> > ("dijetVtxN2");
-   produces<std::vector<float> > ("dijetVtxdR");
-   produces<std::vector<float> > ("dijetVtxCharge");
-   produces<std::vector<float> > ("dijetTrkAvgPt");
-   produces<std::vector<float> > ("dijetPosip2dFrac");
-   produces<std::vector<float> > ("dijetNAvgMissHitsAfterVert");
-   produces<std::vector<float> > ("dijetNAvgHitsInFrontOfVert");
-   produces<std::vector<float> > ("dijetExoVtxFrac");
-   produces<std::vector<float> > ("dijetglxydistall");
-   produces<std::vector<float> > ("dijetglxydistvtx");
-   produces<std::vector<float> > ("dijetglxydistclr");
-   produces<std::vector<float> > ("dijetglxyrmsall");
-   produces<std::vector<float> > ("dijetglxyrmsvtx");
-   produces<std::vector<float> > ("dijetglxyrmsclr");
-   produces<std::vector<int> > ("dijetNclusters");
-   produces<std::vector<int> > ("dijetbestclusterN");
-   produces<std::vector<int> > ("dijetbestclusterN1");
-   produces<std::vector<int> > ("dijetbestclusterN2");
-   produces<std::vector<float> > ("dijetbestclusterlxy");
-
+   produces<std::vector<DisplacedDijet> >("DisplacedDijets");
 }
 
 void
 DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
- 
-   std::auto_ptr<std::vector<float> > dijetCorrPt ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetCorrEta ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetCorrPhi ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetCorrMass ( new std::vector<float> );
-   std::auto_ptr<std::vector<int> > dijetNPromptTracks ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetNDispTracks ( new std::vector<int> );
-   std::auto_ptr<std::vector<float> > dijetPromptEnergyFrac ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetLxy ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetLxysig ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxX ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxY ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxZ ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxChi2 ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxmass ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxpt ( new std::vector<float> );
-   std::auto_ptr<std::vector<int> > dijetVtxN ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetVtxN1 ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetVtxN2 ( new std::vector<int> );
-   std::auto_ptr<std::vector<float> > dijetVtxdR ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetVtxCharge ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetTrkAvgPt ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetPosip2dFrac ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetNAvgMissHitsAfterVert ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetNAvgHitsInFrontOfVert ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetExoVtxFrac ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxydistall ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxydistvtx ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxydistclr ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxyrmsall ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxyrmsvtx ( new std::vector<float> );
-   std::auto_ptr<std::vector<float> > dijetglxyrmsclr ( new std::vector<float> );
-   std::auto_ptr<std::vector<int> > dijetNclusters ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetbestclusterN ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetbestclusterN1 ( new std::vector<int> );
-   std::auto_ptr<std::vector<int> > dijetbestclusterN2 ( new std::vector<int> );
-   std::auto_ptr<std::vector<float> > dijetbestclusterlxy ( new std::vector<float> );
+  std::auto_ptr<std::vector<DisplacedDijet> > output_DisplacedDijets(new std::vector<DisplacedDijet>);
 
    GetEventInfo(iEvent,iSetup);
 
@@ -162,10 +91,14 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
         indicesToVertex.push_back(indices[j]);
 
      }
-     dijetTrkAvgPt->push_back(trksToVertex.size() > 0 ? trkAvgPt/trksToVertex.size() : -1 );
-     dijetNPromptTracks->push_back(nPromptTracks);
-     dijetPromptEnergyFrac->push_back(PromptEnergy/(jet1.energy()+jet2.energy()));
-     dijetNDispTracks->push_back(trksToVertex.size());
+
+     if(trksToVertex.size() < 2)continue;
+
+     DisplacedDijet dijetHolder;
+     dijetHolder.TrkAvgPt = trksToVertex.size() > 0 ? trkAvgPt/trksToVertex.size() : -1;
+     dijetHolder.NPromptTracks = nPromptTracks;
+     dijetHolder.PromptEnergyFrac = PromptEnergy/(jet1.energy()+jet2.energy());
+     dijetHolder.NDispTracks = trksToVertex.size();
 
      bool goodVtx = false;
      TransientVertex jvtx = vtxfitter_.vertex(trksToVertex);
@@ -220,11 +153,11 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
          if(RecoToSimColl.find(ref_trk) != RecoToSimColl.end()){
            TrackingParticleRef tp = RecoToSimColl[ref_trk].begin()->first;
 
-           if (tp->genParticle().size()>0){
+           if (tp->genParticles().size()>0){
              std::vector<std::pair<int,double> > moms;
-             const HepMC::GenParticle *gp = tp->genParticle().at(0).get();
-             moms.push_back(std::pair<int,double> (gp->pdg_id(),gp->production_vertex()->position().perp()));
-             GetMothers(gp,moms);
+             const reco::GenParticle *gp = tp->genParticles().at(0).get();
+             moms.push_back(std::pair<int,double> (gp->pdgId(),gp->vertex().rho()));
+             GetMothers(tp.get(),moms);
             if (moms.back().first == 6000111 || moms.back().first==6000112) FromExo+=1;
            } // genParticle found
          } // TrackAssociation  
@@ -245,35 +178,36 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
        //physicsP43 = detectorP4(jet1,vtx,jvtx,2) + detectorP4(jet2,vtx,jvtx,2);
      }
 
-     dijetCorrPt->push_back(goodVtx ? physicsP4.Pt() : -1);
-     dijetCorrEta->push_back(goodVtx ? physicsP4.Eta() : -1);
-     dijetCorrPhi->push_back(goodVtx ? physicsP4.Phi() : -1);
-     dijetCorrMass->push_back(goodVtx ? physicsP4.M() : -1);
+     dijetHolder.CorrPt = (goodVtx ? physicsP4.Pt() : -1);
+     dijetHolder.CorrEta = (goodVtx ? physicsP4.Eta() : -1);
+     dijetHolder.CorrPhi = (goodVtx ? physicsP4.Phi() : -1);
+     dijetHolder.CorrMass = (goodVtx ? physicsP4.M() : -1);
 
-     dijetLxy->push_back(goodVtx ? lxy : -1);
-     dijetLxysig->push_back(goodVtx ? sig : -1);
-     dijetVtxX->push_back(goodVtx ? (vtx.position().x()-pv.x()) : 999);
-     dijetVtxY->push_back(goodVtx ? (vtx.position().y()-pv.y()) : 999);
-     dijetVtxZ->push_back(goodVtx ? (vtx.position().z()-pv.z()) : 999);
-     dijetVtxChi2->push_back(goodVtx ? vtx.normalizedChi2() : -1);
-     dijetVtxmass->push_back(goodVtx ? vtxP4.M() : -1);
-     dijetVtxpt->push_back(goodVtx ? vtxP4.Pt() : -1);
-     dijetVtxdR->push_back(goodVtx ? dR : -1);
-     dijetVtxN->push_back(goodVtx ? n : -1);
-     dijetVtxCharge->push_back(goodVtx ? charge : 999);
-     dijetNAvgHitsInFrontOfVert->push_back(goodVtx ? hitsInFrontOfVert/float(n) : -1);
-     dijetNAvgMissHitsAfterVert->push_back(goodVtx ? missHitsAfterVert/float(n) : -1);
-     dijetExoVtxFrac->push_back(goodVtx ? FromExo/float(n) : -1);
-     dijetPosip2dFrac->push_back(goodVtx ? nposip2d/float(n) : -1);
-     dijetVtxN1->push_back(goodVtx ? VtxN1 : -1);
-     dijetVtxN2->push_back(goodVtx ? VtxN2 : -1);
-    
+     dijetHolder.Lxy = goodVtx ? lxy : -1;
+     dijetHolder.Lxysig = goodVtx ? sig : -1;
+     dijetHolder.VtxX = goodVtx ? (vtx.position().x()-pv.x()) : 999;
+     dijetHolder.VtxY = goodVtx ? (vtx.position().y()-pv.y()) : 999;
+     dijetHolder.VtxZ = goodVtx ? (vtx.position().z()-pv.z()) : 999;
+     dijetHolder.VtxChi2 = goodVtx ? vtx.normalizedChi2() : -1;
+     dijetHolder.Vtxmass = goodVtx ? vtxP4.M() : -1;
+     dijetHolder.Vtxpt = goodVtx ? vtxP4.Pt() : -1;
+     dijetHolder.VtxdR = goodVtx ? dR : -1;
+     dijetHolder.VtxN = goodVtx ? n : -1;
+     dijetHolder.VtxCharge = goodVtx ? charge : 999;
+     dijetHolder.NAvgHitsInFrontOfVert = goodVtx ? hitsInFrontOfVert/float(n) : -1;
+     dijetHolder.NAvgMissHitsAfterVert = goodVtx ? missHitsAfterVert/float(n) : -1;
+     dijetHolder.ExoVtxFrac = goodVtx ? FromExo/float(n) : -1;
+     dijetHolder.Posip2dFrac = goodVtx ? nposip2d/float(n) : -1;
+     dijetHolder.VtxN1 = goodVtx ? VtxN1 : -1;
+     dijetHolder.VtxN2 = goodVtx ? VtxN2 : -1;
+
      // do glxy stuff here
      helpers help;
-     dijetglxydistall->push_back(goodVtx ? help.AvgDistance(glxysToVertex,lxy) : -1);
-     dijetglxydistvtx->push_back(goodVtx ? help.AvgDistance(glxysVertex,lxy) : -1);
-     dijetglxyrmsall->push_back(goodVtx ? help.RMS(glxysToVertex,lxy) : -1);
-     dijetglxyrmsvtx->push_back(goodVtx ? help.RMS(glxysVertex,lxy) : -1);
+
+     dijetHolder.glxydistall = goodVtx ? help.AvgDistance(glxysToVertex,lxy) : -1;
+     dijetHolder.glxydistvtx = goodVtx ? help.AvgDistance(glxysVertex,lxy) : -1;
+     dijetHolder.glxyrmsall = goodVtx ? help.RMS(glxysToVertex,lxy) : -1;
+     dijetHolder.glxyrmsvtx = goodVtx ? help.RMS(glxysVertex,lxy) : -1;
 
      // clusters
      std::vector<std::vector<float> > clusters = help.clusters(glxysToVertex,0.15*lxy);
@@ -291,53 +225,19 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
        }
      }
 
-     dijetglxyrmsclr->push_back(goodVtx ? help.RMS(bestcluster,lxy) : -1);
-     dijetglxydistclr->push_back(goodVtx ? help.AvgDistance(bestcluster,lxy) : -1);
-     dijetNclusters->push_back(goodVtx ? help.Nclusters(clusters) : -1);
-     dijetbestclusterlxy->push_back(goodVtx ? ( (bestcluster.size()>0 ) ? help.Avg(bestcluster)/lxy : -1) : -1);
-     dijetbestclusterN->push_back(goodVtx ? bestcluster.size() : -1);
-     dijetbestclusterN1->push_back(goodVtx ? clrN1 : -1);
-     dijetbestclusterN2->push_back(goodVtx ? clrN2 : -1);
+     dijetHolder.glxyrmsclr = goodVtx ? help.RMS(bestcluster,lxy) : -1;
+     dijetHolder.glxydistclr = goodVtx ? help.AvgDistance(bestcluster,lxy) : -1;
+     dijetHolder.Nclusters = goodVtx ? help.Nclusters(clusters) : -1;
+     dijetHolder.bestclusterlxy = goodVtx ? ( (bestcluster.size()>0 ) ? help.Avg(bestcluster)/lxy : -1) : -1;
+     dijetHolder.bestclusterN = goodVtx ? bestcluster.size() : -1;
+     dijetHolder.bestclusterN1 = goodVtx ? clrN1 : -1;
+     dijetHolder.bestclusterN2 = goodVtx ? clrN2 : -1;
 
+     output_DisplacedDijets->push_back(dijetHolder);
    } 
   }// dijet loop
 
-  iEvent.put(dijetCorrPt,"dijetCorrPt");
-  iEvent.put(dijetCorrEta,"dijetCorrEta");
-  iEvent.put(dijetCorrPhi,"dijetCorrPhi");
-  iEvent.put(dijetCorrMass,"dijetCorrMass");
-  iEvent.put(dijetNPromptTracks, "dijetNPromptTracks");
-  iEvent.put(dijetNDispTracks, "dijetNDispTracks");
-  iEvent.put(dijetPromptEnergyFrac, "dijetPromptEnergyFrac");
-  iEvent.put(dijetVtxX,"dijetVtxX");
-  iEvent.put(dijetVtxY,"dijetVtxY");
-  iEvent.put(dijetVtxZ,"dijetVtxZ");
-  iEvent.put(dijetLxy, "dijetLxy");
-  iEvent.put(dijetLxysig, "dijetLxysig");
-  iEvent.put(dijetVtxChi2,"dijetVtxChi2");
-  iEvent.put(dijetVtxmass,"dijetVtxmass");
-  iEvent.put(dijetVtxpt,"dijetVtxpt");
-  iEvent.put(dijetVtxdR,"dijetVtxdR");
-  iEvent.put(dijetVtxN,"dijetVtxN");
-  iEvent.put(dijetVtxN1,"dijetVtxN1");
-  iEvent.put(dijetVtxN2,"dijetVtxN2");
-  iEvent.put(dijetVtxCharge,"dijetVtxCharge");
-  iEvent.put(dijetTrkAvgPt,"dijetTrkAvgPt");
-  iEvent.put(dijetPosip2dFrac,"dijetPosip2dFrac");
-  iEvent.put(dijetNAvgHitsInFrontOfVert,"dijetNAvgHitsInFrontOfVert");
-  iEvent.put(dijetNAvgMissHitsAfterVert,"dijetNAvgMissHitsAfterVert");
-  iEvent.put(dijetExoVtxFrac,"dijetExoVtxFrac");
-  iEvent.put(dijetglxydistall,"dijetglxydistall");
-  iEvent.put(dijetglxydistvtx,"dijetglxydistvtx");
-  iEvent.put(dijetglxydistclr,"dijetglxydistclr");
-  iEvent.put(dijetglxyrmsall,"dijetglxyrmsall");
-  iEvent.put(dijetglxyrmsvtx,"dijetglxyrmsvtx");
-  iEvent.put(dijetglxyrmsclr,"dijetglxyrmsclr");
-  iEvent.put(dijetNclusters,"dijetNclusters");
-  iEvent.put(dijetbestclusterN,"dijetbestclusterN");
-  iEvent.put(dijetbestclusterN1,"dijetbestclusterN1");
-  iEvent.put(dijetbestclusterN2,"dijetbestclusterN2");
-  iEvent.put(dijetbestclusterlxy,"dijetbestclusterlxy");
+   iEvent.put(output_DisplacedDijets,"DisplacedDijets");
 
 }
 
@@ -392,24 +292,24 @@ void DJ_DiJetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSe
        iEvent.getByLabel(edm::InputTag("mergedtruth","MergedTrackTruth","HLT"),TPCollectionH);
        edm::ESHandle<TrackAssociatorBase> myAssociator;
        iSetup.get<TrackAssociatorRecord>().get("TrackAssociatorByHits", myAssociator);
-       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent );
+       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent,&iSetup );
      } catch (...) {;}
    }
 
 }
 
-void DJ_DiJetVertices::GetMothers(const HepMC::GenParticle *gp, std::vector<std::pair<int,double> > &moms){
+void DJ_DiJetVertices::GetMothers(const TrackingParticle* gp, std::vector<std::pair<int,double> > &moms){
 
-   HepMC::GenVertex *gv = gp->production_vertex();
-   if(gv != 0 ){
-     for(HepMC::GenVertex::particles_in_const_iterator mom = gv->particles_in_const_begin(); mom != gv->particles_in_const_end(); mom++){
-	  moms.push_back(std::pair<int,double> ( (*mom)->pdg_id(), gv->position().perp() ));
-          if (moms.back().first == 6000111 || moms.back().first == 6000112)
-            return;
-          GetMothers(*mom,moms);
-	  break;
-     }
-   }      
-   return ;
+  const TrackingVertex* gv = gp->parentVertex().get();
+  if(gv != 0 ){
+    for(TrackingVertex::tp_iterator mom = gv->daughterTracks_begin(); mom != gv->daughterTracks_end(); mom++){
+      moms.push_back(std::pair<int,double> ( (*mom).get()->genParticles().at(0).get()->pdgId(), gv->position().rho() ));
+      if (moms.back().first == 6000111 || moms.back().first == 6000112)
+	return;
+      GetMothers((*mom).get(),moms);
+      break;
+    }
+  }      
+  return ;
 }
 

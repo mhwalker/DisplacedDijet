@@ -19,7 +19,8 @@
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/helpers.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/helpers.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 
 class DJ_JetVertices : public edm::EDProducer {
    public:
@@ -28,7 +29,7 @@ class DJ_JetVertices : public edm::EDProducer {
    private:
       virtual void produce(edm::Event&, const edm::EventSetup&);
 
-      void GetMothers(const HepMC::GenParticle *p, std::vector<std::pair<int,double> > &moms);
+      void GetMothers(const TrackingParticle *p, std::vector<std::pair<int,double> > &moms);
       void GetEventInfo(const edm::Event&, const edm::EventSetup&);
 
 

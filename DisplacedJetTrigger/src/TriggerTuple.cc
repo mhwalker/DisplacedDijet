@@ -34,8 +34,8 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TTree.h"
 
-#include "UsercodeCMS/DisplacedJetTrigger/interface/jet.h"
-#include "UsercodeCMS/DisplacedJetTrigger/interface/pfjet.h"
+#include "DisplacedDijet/DisplacedJetTrigger/interface/jet.h"
+#include "DisplacedDijet/DisplacedJetTrigger/interface/pfjet.h"
 
 //
 // class declaration

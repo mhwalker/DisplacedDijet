@@ -8,4 +8,10 @@
   <class name="std::map<std::string,std::string>"/>
   <class name="edm::Wrapper<std::map<std::string,std::string> >"/>
 
+  <class name="DisplacedDijet"/>
+  <class name="std::vector<DisplacedDijet>"/>
+
+  <class name="edm::Wrapper<DisplacedDijet> "/>
+  <class name="edm::Wrapper<std::vector<DisplacedDijet> >"/>
+
 </lcgdict>

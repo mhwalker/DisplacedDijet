@@ -1,4 +1,4 @@
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/DJ_GenEvent.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_GenEvent.h"
 
 DJ_GenEvent::DJ_GenEvent(const edm::ParameterSet& iConfig) {
   produces <std::vector<int> >         ( "XpdgId"  );

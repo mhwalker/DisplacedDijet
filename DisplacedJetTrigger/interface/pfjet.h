@@ -1,9 +1,9 @@
-#ifndef UsercodeCMS_DisplacedJetTrigger_pfjet_h
-#define UsercodeCMS_DisplacedJetTrigger_pfjet_h
+#ifndef DisplacedDijet_DisplacedJetTrigger_pfjet_h
+#define DisplacedDijet_DisplacedJetTrigger_pfjet_h
 
 #include <vector>
 #include "FWCore/Utilities/interface/typedefs.h"
-#include "UsercodeCMS/DisplacedJetTrigger/interface/track.h"
+#include "DisplacedDijet/DisplacedJetTrigger/interface/track.h"
 
 struct pfjet {
 

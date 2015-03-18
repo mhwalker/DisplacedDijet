@@ -1,4 +1,4 @@
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/DJ_Triggers.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_Triggers.h"
 
 DJ_Triggers::DJ_Triggers(const edm::ParameterSet& iConfig)
     : inputTag  (iConfig.getParameter<edm::InputTag>("InputTag"))

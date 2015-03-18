@@ -32,7 +32,7 @@
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/helpers.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/helpers.h"
 
 class DJ_KShorts : public edm::EDProducer {
    public:

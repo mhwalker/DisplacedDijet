@@ -1,4 +1,4 @@
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/DJ_JetVertices.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_JetVertices.h"
 
 DJ_JetVertices::DJ_JetVertices(const edm::ParameterSet& iConfig) : 
 patJetCollectionTag_(iConfig.getParameter<edm::InputTag>("patJetCollectionTag")),
@@ -180,11 +180,11 @@ DJ_JetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
          if(RecoToSimColl.find(ref_trk) != RecoToSimColl.end()){
            TrackingParticleRef tp = RecoToSimColl[ref_trk].begin()->first;
 
-           if (tp->genParticle().size()>0){
+           if (tp->genParticles().size()>0){
              std::vector<std::pair<int,double> > moms;
-             const HepMC::GenParticle *gp = tp->genParticle().at(0).get();
-             moms.push_back(std::pair<int,double> (gp->pdg_id(),gp->production_vertex()->position().perp()));
-             GetMothers(gp,moms);
+             const reco::GenParticle *gp = tp->genParticles().at(0).get();
+             moms.push_back(std::pair<int,double> (gp->pdgId(),gp->vertex().rho()));
+             GetMothers(tp.get(),moms);
             if (moms.back().first == 6000111 || moms.back().first==6000112) FromExo+=1;
            } // genParticle found
          } // TrackAssociation  
@@ -297,24 +297,23 @@ void DJ_JetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSetu
        iEvent.getByLabel(edm::InputTag("mergedtruth","MergedTrackTruth","HLT"),TPCollectionH);
        edm::ESHandle<TrackAssociatorBase> myAssociator;
        iSetup.get<TrackAssociatorRecord>().get("TrackAssociatorByHits", myAssociator);
-       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent );
+       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent,&iSetup );
      } catch (...) {;}
    }
 
 }
+void DJ_JetVertices::GetMothers(const TrackingParticle* gp, std::vector<std::pair<int,double> > &moms){
 
-void DJ_JetVertices::GetMothers(const HepMC::GenParticle *gp, std::vector<std::pair<int,double> > &moms){
-
-   HepMC::GenVertex *gv = gp->production_vertex();
-   if(gv != 0 ){
-     for(HepMC::GenVertex::particles_in_const_iterator mom = gv->particles_in_const_begin(); mom != gv->particles_in_const_end(); mom++){
-	  moms.push_back(std::pair<int,double> ( (*mom)->pdg_id(), gv->position().perp() ));
-          if (moms.back().first == 6000111 || moms.back().first == 6000112)
-            return;
-          GetMothers(*mom,moms);
-	  break;
-     }
-   }      
-   return ;
+  const TrackingVertex* gv = gp->parentVertex().get();
+  if(gv != 0 ){
+    for(TrackingVertex::tp_iterator mom = gv->daughterTracks_begin(); mom != gv->daughterTracks_end(); mom++){
+      moms.push_back(std::pair<int,double> ( (*mom).get()->genParticles().at(0).get()->pdgId(), gv->position().rho() ));
+      if (moms.back().first == 6000111 || moms.back().first == 6000112)
+        return;
+      GetMothers((*mom).get(),moms);
+      break;
+    }
+  }      
+  return ;
 }
 

@@ -1,4 +1,4 @@
-#include "UsercodeCMS/DisplacedJetAnlzr/interface/DJ_DiJets.h"
+#include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_DiJets.h"
 
 DJ_DiJets::DJ_DiJets(const edm::ParameterSet& iConfig) :
 patJetCollectionTag_(iConfig.getParameter<edm::InputTag>("patJetCollectionTag")){
