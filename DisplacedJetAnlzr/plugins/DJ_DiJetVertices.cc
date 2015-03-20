@@ -61,7 +61,11 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      std::vector<float> ip2dsToVertex;
      
      int nPromptTracks=0;
+     int nPromptTracks1=0;
+     int nPromptTracks2=0;
      float PromptEnergy=0;
+     float PromptEnergy1=0;
+     float PromptEnergy2=0;
      float trkAvgPt=0;
      for (size_t j=0;j<dijettrks.size();j++){
         
@@ -73,11 +77,17 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
        reco::TransientTrack t_trk = theB->build(trk);
        Measurement1D ip2d = IPTools::signedTransverseImpactParameter(t_trk,direction,pv).second;
        Measurement1D ip3d = IPTools::signedImpactParameter3D(t_trk,direction,pv).second;
-        if (fabs(ip3d.value())<0.03) nPromptTracks+=1;
-        if (fabs(ip2d.value())<PromptTrackDxyCut_){ 
-          PromptEnergy += sqrt(0.1396*0.1396 + trk->p()*trk->p());
-          continue;
-        }
+       if (fabs(ip3d.value())<0.03) {
+	 nPromptTracks+=1;
+	 if(indices[j] == 1)nPromptTracks1 += 1;
+	 else if(indices[j] == 2) nPromptTracks2 += 1;
+       }
+       if (fabs(ip2d.value())<PromptTrackDxyCut_){ 
+	 PromptEnergy += sqrt(0.1396*0.1396 + trk->p()*trk->p());
+	 if(indices[j] == 1)nPromptTracks1 += 1;
+	 else if(indices[j] == 2) nPromptTracks2 += 1;
+	 continue;
+       }
 	// tracking inefficiency factor
 	if (rand()/float(RAND_MAX) > TrackingEfficiencyFactor_) continue;
 
@@ -99,6 +109,10 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      dijetHolder.NPromptTracks = nPromptTracks;
      dijetHolder.PromptEnergyFrac = PromptEnergy/(jet1.energy()+jet2.energy());
      dijetHolder.NDispTracks = trksToVertex.size();
+     dijetHolder.NPromptTracks1 = nPromptTracks1;
+     dijetHolder.NPromptTracks2 = nPromptTracks2;
+     dijetHolder.PromptEnergyFrac1 = PromptEnergy1/jet1.energy();
+     dijetHolder.PromptEnergyFrac2 = PromptEnergy2/jet2.energy();
 
      bool goodVtx = false;
      TransientVertex jvtx = vtxfitter_.vertex(trksToVertex);

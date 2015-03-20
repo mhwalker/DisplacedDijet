@@ -4,8 +4,9 @@
 
 struct DisplacedDijet {
   float CorrPt,CorrEta,CorrPhi,CorrMass;
-  int NPromptTracks,NDispTracks;
+  int NPromptTracks,NDispTracks,NPromptTracks1,NPromptTracks2;
   float PromptEnergyFrac,Lxy,Lxysig,VtxX,VtxY,VtxZ,VtxChi2,Vtxmass,Vtxpt;
+  float PromptEnergyFrac1,PromptEnergyFrac2;
   int VtxN,VtxN1,VtxN2;
   float VtxdR,VtxCharge,TrkAvgPt,Posip2dFrac,NAvgMissHitsAfterVert;
   float NAvgHitsInFrontOfVert,ExoVtxFrac;
