@@ -1,5 +1,7 @@
 #include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_JetVertices.h"
 
+using namespace std;
+
 DJ_JetVertices::DJ_JetVertices(const edm::ParameterSet& iConfig) : 
 patJetCollectionTag_(iConfig.getParameter<edm::InputTag>("patJetCollectionTag")),
 useTrackingParticles_(iConfig.getParameter<bool>("useTrackingParticles")),
@@ -10,6 +12,10 @@ vtxWeight_(iConfig.getParameter<double>("vtxWeight")),
 PV_(iConfig.getParameter<unsigned int>("PV")),
 vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexfitter")),
 vtxfitter_(vtxconfig_) {
+
+  associatorName_ = "TrackAssociatorByHits";
+  if(iConfig.exists("associator"))associatorName_ = iConfig.getParameter<string>("associator");
+  consumes<reco::TrackToTrackingParticleAssociator>(edm::InputTag(associatorName_));
 
    produces<std::vector<float> > ("jetCorrPt");
    produces<std::vector<float> > ("jetCorrEta");
@@ -170,7 +176,7 @@ DJ_JetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
          charge+=t_trk.track().charge();
          if(ip2dsToVertex[j]>0) nposip2d+=1;
          // hitPattern
-         CheckHitPattern::Result res = checkHitPattern_.analyze(iSetup,t_trk.track(),jvtx.vertexState());
+         CheckHitPattern::Result res = checkHitPattern_.analyze(iSetup,t_trk.track(),jvtx.vertexState(),false);
          hitsInFrontOfVert += res.hitsInFrontOfVert;
          missHitsAfterVert += res.missHitsAfterVert;
          //glxys
@@ -295,9 +301,11 @@ void DJ_JetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSetu
      edm::Handle<std::vector<TrackingParticle> > TPCollectionH ;
      try{
        iEvent.getByLabel(edm::InputTag("mergedtruth","MergedTrackTruth","HLT"),TPCollectionH);
-       edm::ESHandle<TrackAssociatorBase> myAssociator;
-       iSetup.get<TrackAssociatorRecord>().get("TrackAssociatorByHits", myAssociator);
-       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent,&iSetup );
+       const reco::TrackToTrackingParticleAssociator* m_associator;
+       edm::Handle<reco::TrackToTrackingParticleAssociator> assocHandle;
+       iEvent.getByLabel(associatorName_,assocHandle);
+       m_associator = assocHandle.product();
+       RecoToSimColl = m_associator->associateRecoToSim(generalTracks,TPCollectionH);
      } catch (...) {;}
    }
 

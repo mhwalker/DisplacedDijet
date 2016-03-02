@@ -26,8 +26,6 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "RecoVertex/ConfigurableVertexReco/interface/ConfigurableVertexFitter.h"
 #include "PhysicsTools/RecoUtils/interface/CheckHitPattern.h"
-#include "SimTracker/TrackAssociation/interface/TrackAssociatorBase.h"
-#include "SimTracker/Records/interface/TrackAssociatorRecord.h"
 #include "TrackingTools/IPTools/interface/IPTools.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"

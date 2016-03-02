@@ -13,8 +13,7 @@
 #include "DataFormats/Math/interface/deltaR.h"
 #include "RecoVertex/ConfigurableVertexReco/interface/ConfigurableVertexFitter.h"
 #include "PhysicsTools/RecoUtils/interface/CheckHitPattern.h"
-#include "SimTracker/TrackAssociation/interface/TrackAssociatorBase.h"
-#include "SimTracker/Records/interface/TrackAssociatorRecord.h"
+#include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
 #include "TrackingTools/IPTools/interface/IPTools.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
@@ -50,6 +49,11 @@ class DJ_DiJetVertices : public edm::EDProducer {
       edm::ESHandle<TransientTrackBuilder> theB;
       CheckHitPattern checkHitPattern_;
 
+      std::string associatorName_;
+      edm::InputTag vertexCollectionTag_;
+      edm::InputTag trackCollectionTag_;
+      edm::InputTag truthTrackCollectionTag_;
+      
 };
 
 #endif

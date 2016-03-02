@@ -4,6 +4,7 @@ DJ_Triggers::DJ_Triggers(const edm::ParameterSet& iConfig)
     : inputTag  (iConfig.getParameter<edm::InputTag>("InputTag"))
     , tag_( iConfig.getParameter<edm::InputTag>("TriggerEventInputTag"))
     , hltpaths_( iConfig.getParameter<std::vector<std::string> >("HLTPaths") )
+    , hltPrescale(iConfig,consumesCollector(),*this)
     , run_(-1) {
 
     produces <bool> ( "hltHandleValid");
@@ -61,7 +62,7 @@ void DJ_Triggers::produce( edm::Event& event, const edm::EventSetup& setup) {
       }
       if (!interestingTrigger) continue;
 
-      unsigned int prescale = hltConfig.prescaleValue(event,setup,names.triggerName(i));
+      unsigned int prescale = hltPrescale.prescaleValue(event,setup,names.triggerName(i));
       bool accept = results->accept(i);
       // check if triggered failed on a prescaler
       if (prescale>1 && !accept){
@@ -70,7 +71,7 @@ void DJ_Triggers::produce( edm::Event& event, const edm::EventSetup& setup) {
         if (moduleType=="HLTPrescaler" || moduleType=="TriggerResultsFilter") continue;
       }
       
-      (*prescaled)[names.triggerName(i)] = hltConfig.prescaleValue(event,setup,names.triggerName(i));
+      (*prescaled)[names.triggerName(i)] = hltPrescale.prescaleValue(event,setup,names.triggerName(i));
       (*triggered)[names.triggerName(i)] = results->accept(i) ;
       const std::vector<std::pair<bool,std::string> >&  l1Seeds = hltConfig.hltL1GTSeeds(i);
       if (l1Seeds.size() == 1) {

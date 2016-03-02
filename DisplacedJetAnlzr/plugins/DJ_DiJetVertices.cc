@@ -1,6 +1,8 @@
 #include "DisplacedDijet/DisplacedJetAnlzr/interface/DJ_DiJetVertices.h"
 #include "DisplacedDijet/DisplacedJetAnlzr/interface/DisplacedDijet.h"
 
+using namespace std;
+
 DJ_DiJetVertices::DJ_DiJetVertices(const edm::ParameterSet& iConfig) : 
 patJetCollectionTag_(iConfig.getParameter<edm::InputTag>("patJetCollectionTag")),
 useTrackingParticles_(iConfig.getParameter<bool>("useTrackingParticles")),
@@ -12,7 +14,20 @@ PV_(iConfig.getParameter<unsigned int>("PV")),
 vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexfitter")),
 vtxfitter_(vtxconfig_) {
 
-   produces<std::vector<DisplacedDijet> >("DisplacedDijets");
+  associatorName_ = "TrackAssociatorByHits";
+  if(iConfig.exists("associator"))associatorName_ = iConfig.getParameter<string>("associator");
+
+  vertexCollectionTag_ = edm::InputTag("offlinePrimaryVertices");
+  trackCollectionTag_ = edm::InputTag("generalTracks");
+  truthTrackCollectionTag_ = edm::InputTag("mergedtruth","MergedTrackTruth","HLT");
+
+  produces<std::vector<DisplacedDijet> >("DisplacedDijets");
+  consumes<reco::TrackToTrackingParticleAssociator>(edm::InputTag(associatorName_));
+  consumes<std::vector<pat::Jet> >(patJetCollectionTag_);
+  consumes<reco::VertexCollection>(vertexCollectionTag_);
+  consumes<edm::View<reco::Track> >(trackCollectionTag_);
+  consumes<std::vector<TrackingParticle> >(truthTrackCollectionTag_);
+
 }
 
 void
@@ -157,7 +172,7 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
          if (indicesToVertex[j] == 2) VtxN2+=1;
          if (ip2dsToVertex[j]>0) nposip2d+=1;
          // hitPattern
-         CheckHitPattern::Result res = checkHitPattern_.analyze(iSetup,t_trk.track(),jvtx.vertexState());
+         CheckHitPattern::Result res = checkHitPattern_.analyze(iSetup,t_trk.track(),jvtx.vertexState(),false);
          hitsInFrontOfVert += res.hitsInFrontOfVert;
          missHitsAfterVert += res.missHitsAfterVert;
          //glxys
@@ -288,14 +303,14 @@ void DJ_DiJetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSe
 // Vertices and tracks
 
    edm::Handle<reco::VertexCollection> recVtxs;
-   iEvent.getByLabel("offlinePrimaryVertices", recVtxs);
+   iEvent.getByLabel(vertexCollectionTag_, recVtxs);
    if (recVtxs->size()>PV_) 
      pv=recVtxs->at(PV_); 
    else
      pv = recVtxs->front();
 
    edm::Handle<edm::View<reco::Track> > generalTracks;
-   iEvent.getByLabel("generalTracks",generalTracks);
+   iEvent.getByLabel(trackCollectionTag_,generalTracks);
 // TransientTrack Builder
    iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
@@ -303,10 +318,12 @@ void DJ_DiJetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSe
    if(!iEvent.isRealData() && useTrackingParticles_){
      edm::Handle<std::vector<TrackingParticle> > TPCollectionH ;
      try{
-       iEvent.getByLabel(edm::InputTag("mergedtruth","MergedTrackTruth","HLT"),TPCollectionH);
-       edm::ESHandle<TrackAssociatorBase> myAssociator;
-       iSetup.get<TrackAssociatorRecord>().get("TrackAssociatorByHits", myAssociator);
-       RecoToSimColl = myAssociator->associateRecoToSim(generalTracks,TPCollectionH,&iEvent,&iSetup );
+       iEvent.getByLabel(truthTrackCollectionTag_,TPCollectionH);
+       const reco::TrackToTrackingParticleAssociator* m_associator;
+       edm::Handle<reco::TrackToTrackingParticleAssociator> assocHandle;
+       iEvent.getByLabel(associatorName_,assocHandle);
+       m_associator = assocHandle.product();
+       RecoToSimColl = m_associator->associateRecoToSim(generalTracks,TPCollectionH);
      } catch (...) {;}
    }
 

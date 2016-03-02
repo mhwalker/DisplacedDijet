@@ -12,6 +12,7 @@
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "HLTrigger/HLTcore/interface/HLTPrescaleProvider.h"
 
 class DJ_Triggers : public edm::EDProducer 
 {
@@ -23,6 +24,7 @@ private:
   HLTConfigProvider     hltConfig;
   edm::InputTag         tag_;
   std::vector<std::string> hltpaths_;
+  HLTPrescaleProvider   hltPrescale;
   int                   run_;
   
   void printNames(const std::vector<std::string>& names); 
