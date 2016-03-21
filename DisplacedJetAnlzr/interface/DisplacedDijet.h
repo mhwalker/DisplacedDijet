@@ -13,6 +13,14 @@ struct DisplacedDijet {
   float glxydistall,glxydistvtx,glxydistclr,glxyrmsall,glxyrmsvtx,glxyrmsclr;
   int Nclusters,bestclusterN,bestclusterN1,bestclusterN2;
   float bestclusterlxy;
+  float alphaMax;
+  float openingAngle;
+  float medianIPLog10Sig;
+  float medianTrackAngle;
+  float medianTrackAngleLog10;
+  float totalTrackAngle;
+  float trackMass1,trackMass2;
+  float trackEnergy1,trackEnergy2;
 
 };
 

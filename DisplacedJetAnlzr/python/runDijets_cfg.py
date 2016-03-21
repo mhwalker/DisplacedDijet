@@ -34,6 +34,9 @@ process.load('PhysicsTools.PatAlgos.patSequences_cff')
 
 process.load("DisplacedDijet.DisplacedJetAnlzr.DJ_DiJetVertices_cfi")
 
+process.djdijetvertices.patJetCollectionTag = cms.InputTag("ak4CaloJets")
+process.djdijetvertices.motherIDs = cms.vint32(900006)
+
 from PhysicsTools.PatAlgos.patEventContent_cff import patEventContentNoCleaning
 process.out = cms.OutputModule(
   "PoolOutputModule"

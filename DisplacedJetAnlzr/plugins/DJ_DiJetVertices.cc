@@ -14,18 +14,32 @@ PV_(iConfig.getParameter<unsigned int>("PV")),
 vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexfitter")),
 vtxfitter_(vtxconfig_) {
 
+  maxTrackToJetDeltaR_ = 0.4;
+
+  if(iConfig.exists("maxTrackToJetDeltaR"))maxTrackToJetDeltaR_ = iConfig.getParameter<double>("maxTrackToJetDeltaR");
+
+
   associatorName_ = "TrackAssociatorByHits";
   if(iConfig.exists("associator"))associatorName_ = iConfig.getParameter<string>("associator");
 
   vertexCollectionTag_ = edm::InputTag("offlinePrimaryVertices");
   trackCollectionTag_ = edm::InputTag("generalTracks");
   truthTrackCollectionTag_ = edm::InputTag("mergedtruth","MergedTrackTruth","HLT");
+  exoticMotherIDs_ = {6000111,6000112};
+  if(iConfig.exists("motherIDs"))exoticMotherIDs_ = iConfig.getParameter<vector<int> >("motherIDs");
+
+  beamspotLabel_ = edm::InputTag("offlineBeamSpot");
+  if(iConfig.exists("beamSpotInputTag"))beamspotLabel_ = iConfig.getParameter<edm::InputTag>("beamSpotInputTag");
+  beamspotToken_ = consumes<reco::BeamSpot>(beamspotLabel_);
 
   produces<std::vector<DisplacedDijet> >("DisplacedDijets");
   consumes<reco::TrackToTrackingParticleAssociator>(edm::InputTag(associatorName_));
-  consumes<std::vector<pat::Jet> >(patJetCollectionTag_);
-  consumes<reco::VertexCollection>(vertexCollectionTag_);
-  consumes<edm::View<reco::Track> >(trackCollectionTag_);
+  consumes<std::vector<reco::CaloJet> >(patJetCollectionTag_);
+  //consumes<std::vector<pat::Jet> >(patJetCollectionTag_);
+  vertexToken_ = consumes<edm::View<reco::Vertex> >(vertexCollectionTag_);
+  //vertexToken_ = consumes<reco::VertexCollection>(vertexCollectionTag_);
+  //consumes<reco::TrackCollection>(trackCollectionTag_);
+  trackToken_ = consumes<edm::View<reco::Track> >(trackCollectionTag_);
   consumes<std::vector<TrackingParticle> >(truthTrackCollectionTag_);
 
 }
@@ -35,15 +49,75 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   std::auto_ptr<std::vector<DisplacedDijet> > output_DisplacedDijets(new std::vector<DisplacedDijet>);
 
+  bool hasTracks = iEvent.getByToken(trackToken_,trackHandle_);
+
+  if(!hasTracks){
+   iEvent.put(output_DisplacedDijets,"DisplacedDijets");
+   return;
+  }
+
    GetEventInfo(iEvent,iSetup);
 
-   edm::Handle<std::vector<pat::Jet> > patJetsHandle;
+   vector<int> whichVertex(trackHandle_->size(),-1);
+   for(int i = 0; i < (int)trackHandle_->size(); i++){
+     double maxWeight = 0;
+     int jj = -1;
+     reco::TrackBaseRef tref(trackHandle_,i);
+     for(int j = 0; j < (int)recVtxs->size();j++){
+       if(recVtxs->at(j).trackWeight(tref) > maxWeight){
+	 maxWeight = recVtxs->at(j).trackWeight(tref);
+	 jj = j;
+       }
+     }
+     whichVertex[i] = jj;
+   }
+
+   edm::ESHandle<MagneticField> magneticField;
+   iSetup.get<IdealMagneticFieldRecord>().get(magneticField);
+   const MagneticField* magneticField_ = &*magneticField;
+
+   edm::ESHandle<Propagator> thePropagator_;
+   iSetup.get<TrackingComponentsRecord>().get("PropagatorWithMaterial",thePropagator_);
+   StateOnTrackerBound stateOnTracker(thePropagator_.product());
+
+   edm::Handle<std::vector<reco::CaloJet> > patJetsHandle;
    iEvent.getByLabel(patJetCollectionTag_,patJetsHandle);
+   iEvent.getByToken(beamspotToken_, beamspotHandle_);
+
+   //iEvent.getByLabel(trackCollectionTag_,trackHandle_);
+
+   std::vector<std::vector<reco::TransientTrack> > associatedTrackVector;
+   std::vector<std::vector<int> > whichVertexVector;
+
+   for(int i = 0; i < int(patJetsHandle->size()); i++){
+     const reco::CaloJet& calo_jet = patJetsHandle->at(i);
+     TVector3 jetVec;
+     jetVec.SetPtEtaPhi(calo_jet.detectorP4().Pt(),calo_jet.detectorP4().Eta(),calo_jet.detectorP4().phi());
+     std::vector<reco::TransientTrack> associatedTracks;
+     std::vector<int> vertexVector;
+     for(int j = 0; j < (int)trackHandle_->size(); j++){
+       reco::TrackBaseRef tref(trackHandle_,j);
+       if(tref->pt() < TrackPtCut_)continue;
+       if (!tref->quality(reco::TrackBase::highPurity)) continue;
+       FreeTrajectoryState fts = trajectoryStateTransform::initialFreeState(trackHandle_->at(j),magneticField_);
+       TrajectoryStateOnSurface outer = stateOnTracker(fts);
+       if(!outer.isValid())continue;
+       GlobalPoint outerPos = outer.globalPosition();
+       TVector3 trackPos(outerPos.x(),outerPos.y(),outerPos.z());
+       if(trackPos.DeltaR(jetVec) > maxTrackToJetDeltaR_)continue;
+       reco::TransientTrack tt(trackHandle_->at(j),magneticField_);
+       associatedTracks.push_back(tt);
+       vertexVector.push_back(whichVertex[j]);
+     }
+     associatedTrackVector.push_back(associatedTracks);
+     whichVertexVector.push_back(vertexVector);
+   }
 
    for (int i=0;i<int(patJetsHandle->size()-1);i++){
     for (size_t k=i+1;k<patJetsHandle->size();k++){
-     pat::Jet jet1 = patJetsHandle->at(i);
-     pat::Jet jet2 = patJetsHandle->at(k);
+
+     reco::CaloJet jet1 = patJetsHandle->at(i);
+     reco::CaloJet jet2 = patJetsHandle->at(k);
      reco::Candidate::LorentzVector p4 = jet1.p4() + jet2.p4();
 
      //DEBUG
@@ -55,8 +129,10 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      direction = direction.unit();
 
      //tracks selection
-     reco::TrackRefVector dijettrks = jet1.associatedTracks();
-     reco::TrackRefVector dijettrks2 = jet2.associatedTracks();
+     //reco::TrackRefVector dijettrks = jet1.associatedTracks();
+     //reco::TrackRefVector dijettrks2 = jet2.associatedTracks();
+     std::vector<reco::TransientTrack> dijettrks = associatedTrackVector[i];
+     std::vector<reco::TransientTrack> dijettrks2 = associatedTrackVector[k];
 
      ////TO REMOVE
      std::vector<int> indices1(dijettrks.size());
@@ -70,6 +146,10 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      std::fill(indices.begin(),indices.end()-dijettrks2.size(),1);
      std::fill(indices.end()-dijettrks2.size(),indices.end(),2);
 
+     std::vector<int> vertexVector = whichVertexVector[i];
+     std::vector<int> vertexVector2 = whichVertexVector[k];
+     for(size_t j = 0; j < vertexVector2.size(); j++)vertexVector.push_back(vertexVector2[j]);
+
      std::vector<reco::TransientTrack> trksToVertex;     
      std::vector<int> indicesToVertex;
      std::vector<float> glxysToVertex;
@@ -82,14 +162,13 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      float PromptEnergy1=0;
      float PromptEnergy2=0;
      float trkAvgPt=0;
+
      for (size_t j=0;j<dijettrks.size();j++){
         
-       const reco::TrackRef trk = dijettrks[j];
+       const reco::TransientTrack trk = dijettrks[j];
 
-       if (!trk->quality(reco::TrackBase::highPurity)) continue;
-       if (trk->pt() < TrackPtCut_) continue;
-
-       reco::TransientTrack t_trk = theB->build(trk);
+       reco::TransientTrack t_trk = trk;
+       //reco::TransientTrack t_trk = theB->build(trk);
        Measurement1D ip2d = IPTools::signedTransverseImpactParameter(t_trk,direction,pv).second;
        Measurement1D ip3d = IPTools::signedImpactParameter3D(t_trk,direction,pv).second;
        if (fabs(ip3d.value())<0.03) {
@@ -98,7 +177,7 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 else if(indices[j] == 2) nPromptTracks2 += 1;
        }
        if (fabs(ip2d.value())<PromptTrackDxyCut_){ 
-	 PromptEnergy += sqrt(0.1396*0.1396 + trk->p()*trk->p());
+	 PromptEnergy += sqrt(0.1396*0.1396 + trk.track().p()*trk.track().p());
 	 if(indices[j] == 1)nPromptTracks1 += 1;
 	 else if(indices[j] == 2) nPromptTracks2 += 1;
 	 continue;
@@ -106,9 +185,9 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	// tracking inefficiency factor
 	if (rand()/float(RAND_MAX) > TrackingEfficiencyFactor_) continue;
 
-	trkAvgPt+=trk->pt();
-        float r = 100*3.3*trk->pt()/3.8;
-        float guesslxy = ip2d.value()/sin(trk->phi()-direction.phi())*(1-2.5*fabs(ip2d.value())/r);
+	trkAvgPt+=trk.track().pt();
+        float r = 100*3.3*trk.track().pt()/3.8;
+        float guesslxy = ip2d.value()/sin(trk.track().phi()-direction.phi())*(1-2.5*fabs(ip2d.value())/r);
 
         ip2dsToVertex.push_back(ip2d.value());
         glxysToVertex.push_back(fabs(guesslxy));
@@ -118,6 +197,8 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      }
 
      if(trksToVertex.size() < 2)continue;
+     vector<float> tracksIPLogSig;
+     vector<float> tracksIPLog10Sig;
 
      DisplacedDijet dijetHolder;
      dijetHolder.TrkAvgPt = trksToVertex.size() > 0 ? trkAvgPt/trksToVertex.size() : -1;
@@ -128,6 +209,7 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      dijetHolder.NPromptTracks2 = nPromptTracks2;
      dijetHolder.PromptEnergyFrac1 = PromptEnergy1/jet1.energy();
      dijetHolder.PromptEnergyFrac2 = PromptEnergy2/jet2.energy();
+
 
      bool goodVtx = false;
      TransientVertex jvtx = vtxfitter_.vertex(trksToVertex);
@@ -154,22 +236,41 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      int VtxN2=0;
      std::vector<float> glxysVertex;
      ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > vtxP4;
+     ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > vtxP4_1;
+     ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > vtxP4_2;
 
      //DEBUG
      //std::cout << "vtx Lxy: " << lxy << std::endl; 
      //ENDDEBUG
+     std::vector<reco::TransientTrack> matchedTracks;
+     std::vector<int> matchedVertexVector;
      for (size_t j=0;j<trksToVertex.size();j++){
+
        reco::TransientTrack t_trk = trksToVertex[j];
+
        if (jvtx.trackWeight(t_trk)>vtxWeight_){
+	 matchedTracks.push_back(t_trk);
+	 matchedVertexVector.push_back(vertexVector[j]);
+
          GlobalVector p3 = t_trk.trajectoryStateClosestToPoint(jvtx.position()).momentum();
  	 vtxP4 += ROOT::Math::LorentzVector<ROOT::Math::PxPyPzM4D<double> >(p3.x(),p3.y(),p3.z(),0.13957018);
          charge+=t_trk.track().charge();
+	 tracksIPLogSig.push_back(log(t_trk.stateAtBeamLine().transverseImpactParameter().significance()));
+	 tracksIPLog10Sig.push_back(log10(t_trk.stateAtBeamLine().transverseImpactParameter().significance()));
 	 // DEBUG
          //std::cout << "vtx_trk: pt,eta,phi,N,weight " << t_trk.track().pt() << " " << t_trk.track().eta() << " " << t_trk.track().phi() << " " << indicesToVertex[j]
          //<< " " << jvtx.trackWeight(t_trk) << std::endl;
 	 // END DEBUG
-         if (indicesToVertex[j] == 1) VtxN1+=1;
-         if (indicesToVertex[j] == 2) VtxN2+=1;
+         if (indicesToVertex[j] == 1){
+	   VtxN1+=1;
+	   vtxP4_1 += ROOT::Math::LorentzVector<ROOT::Math::PxPyPzM4D<double> >(p3.x(),p3.y(),p3.z(),0.13957018);
+
+	 }
+         if (indicesToVertex[j] == 2){
+	   VtxN2+=1;
+	   vtxP4_2 += ROOT::Math::LorentzVector<ROOT::Math::PxPyPzM4D<double> >(p3.x(),p3.y(),p3.z(),0.13957018);
+
+	 }
          if (ip2dsToVertex[j]>0) nposip2d+=1;
          // hitPattern
          CheckHitPattern::Result res = checkHitPattern_.analyze(iSetup,t_trk.track(),jvtx.vertexState(),false);
@@ -187,7 +288,8 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
              const reco::GenParticle *gp = tp->genParticles().at(0).get();
              moms.push_back(std::pair<int,double> (gp->pdgId(),gp->vertex().rho()));
              GetMothers(tp.get(),moms);
-            if (moms.back().first == 6000111 || moms.back().first==6000112) FromExo+=1;
+	     if(find(exoticMotherIDs_.begin(),exoticMotherIDs_.end(),moms.back().first) != exoticMotherIDs_.end())FromExo += 1;
+	     //if (moms.back().first == 6000111 || moms.back().first==6000112) FromExo+=1;
            } // genParticle found
          } // TrackAssociation  
        } // vtx tracks
@@ -199,13 +301,18 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      //reco::Candidate::LorentzVector physicsP41,physicsP42,physicsP43;
      if (goodVtx){
        // corrected P4
-       physicsP4 = jet1.physicsP4(vtx.position(),jet1,jet1.vertex())
-                                                 +jet2.physicsP4(vtx.position(),jet2,jet2.vertex());
+       physicsP4 = jet1.physicsP4(vtx.position())
+	 +jet2.physicsP4(vtx.position());
 
        //physicsP41 = detectorP4(jet1,vtx,jvtx,0) + detectorP4(jet2,vtx,jvtx,0);
        //physicsP42 = detectorP4(jet1,vtx,jvtx,1) + detectorP4(jet2,vtx,jvtx,1);
        //physicsP43 = detectorP4(jet1,vtx,jvtx,2) + detectorP4(jet2,vtx,jvtx,2);
      }
+
+     double deltaPhi = 0;
+     double medianDeltaPhi = 0;
+     double alphaMax = calculateAlphaMax(matchedTracks,matchedVertexVector);
+     if(goodVtx)deltaVertex2D(jvtx.position(),matchedTracks,deltaPhi,medianDeltaPhi);
 
      dijetHolder.CorrPt = (goodVtx ? physicsP4.Pt() : -1);
      dijetHolder.CorrEta = (goodVtx ? physicsP4.Eta() : -999);
@@ -230,6 +337,27 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      dijetHolder.VtxN1 = goodVtx ? VtxN1 : -1;
      dijetHolder.VtxN2 = goodVtx ? VtxN2 : -1;
 
+     dijetHolder.trackMass1 = goodVtx ? vtxP4_1.M() : -1;
+     dijetHolder.trackEnergy1 = goodVtx ? vtxP4_1.E() : -1;
+     dijetHolder.trackMass2 = goodVtx ? vtxP4_2.M() : -1;
+     dijetHolder.trackEnergy2 = goodVtx ? vtxP4_2.E() : -1;
+
+     dijetHolder.openingAngle = goodVtx ? ROOT::Math::VectorUtil::Angle(vtxP4_1,vtxP4_2) : -999;
+
+     sort(tracksIPLogSig.begin(), tracksIPLogSig.end());
+     sort(tracksIPLog10Sig.begin(), tracksIPLog10Sig.end());
+
+     if(tracksIPLog10Sig.size() == 0){
+       dijetHolder.medianIPLog10Sig = -999;
+     }else if((tracksIPLog10Sig.size()%2 == 0)){
+       dijetHolder.medianIPLog10Sig = (tracksIPLog10Sig.at(tracksIPLog10Sig.size()/2-1)+tracksIPLog10Sig.at((tracksIPLog10Sig.size()/2)))/2;
+     }else{
+       dijetHolder.medianIPLog10Sig = tracksIPLog10Sig.at((tracksIPLog10Sig.size()-1)/2);
+     }
+     dijetHolder.alphaMax = alphaMax;     
+     dijetHolder.totalTrackAngle = goodVtx ? deltaPhi : -999;
+     dijetHolder.medianTrackAngle = goodVtx ? medianDeltaPhi : -999;
+     dijetHolder.medianTrackAngleLog10 = goodVtx ? log10(medianDeltaPhi) : -999;
      // do glxy stuff here
      helpers help;
 
@@ -302,15 +430,13 @@ void DJ_DiJetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSe
 
 // Vertices and tracks
 
-   edm::Handle<reco::VertexCollection> recVtxs;
-   iEvent.getByLabel(vertexCollectionTag_, recVtxs);
+  //edm::Handle<reco::VertexCollection> recVtxs;
+   iEvent.getByToken(vertexToken_, recVtxs);
    if (recVtxs->size()>PV_) 
      pv=recVtxs->at(PV_); 
    else
      pv = recVtxs->front();
 
-   edm::Handle<edm::View<reco::Track> > generalTracks;
-   iEvent.getByLabel(trackCollectionTag_,generalTracks);
 // TransientTrack Builder
    iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
@@ -318,12 +444,14 @@ void DJ_DiJetVertices::GetEventInfo(const edm::Event& iEvent, const edm::EventSe
    if(!iEvent.isRealData() && useTrackingParticles_){
      edm::Handle<std::vector<TrackingParticle> > TPCollectionH ;
      try{
-       iEvent.getByLabel(truthTrackCollectionTag_,TPCollectionH);
-       const reco::TrackToTrackingParticleAssociator* m_associator;
-       edm::Handle<reco::TrackToTrackingParticleAssociator> assocHandle;
-       iEvent.getByLabel(associatorName_,assocHandle);
-       m_associator = assocHandle.product();
-       RecoToSimColl = m_associator->associateRecoToSim(generalTracks,TPCollectionH);
+       if(iEvent.getByLabel(truthTrackCollectionTag_,TPCollectionH)){
+	 const reco::TrackToTrackingParticleAssociator* m_associator;
+	 edm::Handle<reco::TrackToTrackingParticleAssociator> assocHandle;
+	 if(iEvent.getByLabel(associatorName_,assocHandle)){
+	   m_associator = assocHandle.product();
+	   RecoToSimColl = m_associator->associateRecoToSim(trackHandle_,TPCollectionH);
+	 }
+       }
      } catch (...) {;}
    }
 
@@ -335,7 +463,7 @@ void DJ_DiJetVertices::GetMothers(const TrackingParticle* gp, std::vector<std::p
   if(gv != 0 ){
     for(TrackingVertex::tp_iterator mom = gv->daughterTracks_begin(); mom != gv->daughterTracks_end(); mom++){
       moms.push_back(std::pair<int,double> ( (*mom).get()->genParticles().at(0).get()->pdgId(), gv->position().rho() ));
-      if (moms.back().first == 6000111 || moms.back().first == 6000112)
+      if (find(exoticMotherIDs_.begin(),exoticMotherIDs_.end(),moms.back().first) != exoticMotherIDs_.end())
 	return;
       GetMothers((*mom).get(),moms);
       break;
@@ -344,3 +472,45 @@ void DJ_DiJetVertices::GetMothers(const TrackingParticle* gp, std::vector<std::p
   return ;
 }
 
+void DJ_DiJetVertices::deltaVertex2D(GlobalPoint secVert, std::vector<reco::TransientTrack> tracks, double& dPhi, double& medianDPhi)
+{
+  const reco::BeamSpot& pat_beamspot = (*beamspotHandle_);
+  TVector2 bmspot(pat_beamspot.x0(),pat_beamspot.y0());
+  TVector2 sv(secVert.x(),secVert.y());
+  TVector2 diff = (sv-bmspot);
+  TVector2 trackPt(0,0);
+  vector<double>angles;
+  for(int i = 0; i < (int)tracks.size(); i++){
+    TVector2 tt;
+    tt.SetMagPhi(tracks[i].trajectoryStateClosestToPoint(secVert).momentum().transverse(),tracks[i].trajectoryStateClosestToPoint(secVert).momentum().phi());
+    angles.push_back(fabs(diff.DeltaPhi(tt)));
+    trackPt += tt;
+  }
+  sort(angles.begin(),angles.end());
+  dPhi = diff.DeltaPhi(trackPt);
+  if(angles.size()==0){
+    medianDPhi = 1e-10;
+  }else if(angles.size() %2 == 0){
+    medianDPhi = angles.at(angles.size()/2-1);
+  }else{
+    medianDPhi = angles.at((angles.size()-1)/2);
+  }
+  //pt = (trackPt - ((trackPt * diff)/(diff * diff) * diff)).Mod();
+}
+
+double DJ_DiJetVertices::calculateAlphaMax(vector<reco::TransientTrack>tracks,vector<int> whichVertex)
+{
+  double total = 0;
+  vector<double> alphas(recVtxs->size(),0);
+  for(int i = 0; i < (int)tracks.size(); i++){
+    double pt = tracks[i].initialFreeState().momentum().transverse();
+    total += pt;
+    if(whichVertex[i] < 0)continue;
+    alphas[whichVertex[i]] += pt;
+  }
+  double alphaMax = 0;
+  for(int i = 0; i < (int)alphas.size(); i++){
+    if(alphas[i] > alphaMax)alphaMax = alphas[i];
+  }
+  return alphaMax / total;
+}
