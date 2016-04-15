@@ -163,23 +163,31 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      float PromptEnergy2=0;
      float trkAvgPt=0;
 
+     std::vector<reco::TransientTrack> matchedTracks;
+     std::vector<int> matchedVertexVector;
+
      for (size_t j=0;j<dijettrks.size();j++){
         
        const reco::TransientTrack trk = dijettrks[j];
 
        reco::TransientTrack t_trk = trk;
+       matchedTracks.push_back(t_trk);
+       matchedVertexVector.push_back(vertexVector[j]);
+
+
        //reco::TransientTrack t_trk = theB->build(trk);
        Measurement1D ip2d = IPTools::signedTransverseImpactParameter(t_trk,direction,pv).second;
        Measurement1D ip3d = IPTools::signedImpactParameter3D(t_trk,direction,pv).second;
-       if (fabs(ip3d.value())<0.03) {
-	 nPromptTracks+=1;
-	 if(indices[j] == 1)nPromptTracks1 += 1;
-	 else if(indices[j] == 2) nPromptTracks2 += 1;
-       }
        if (fabs(ip2d.value())<PromptTrackDxyCut_){ 
 	 PromptEnergy += sqrt(0.1396*0.1396 + trk.track().p()*trk.track().p());
-	 if(indices[j] == 1)nPromptTracks1 += 1;
-	 else if(indices[j] == 2) nPromptTracks2 += 1;
+	 nPromptTracks+=1;
+	 if(indices[j] == 1){
+	   nPromptTracks1 += 1;
+	   PromptEnergy1 += sqrt(0.1396*0.1396 + trk.track().p()*trk.track().p());
+	 } else if(indices[j] == 2){
+	   nPromptTracks2 += 1;
+	   PromptEnergy2 += sqrt(0.1396*0.1396 + trk.track().p()*trk.track().p());
+	 }
 	 continue;
        }
 	// tracking inefficiency factor
@@ -242,16 +250,11 @@ DJ_DiJetVertices::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
      //DEBUG
      //std::cout << "vtx Lxy: " << lxy << std::endl; 
      //ENDDEBUG
-     std::vector<reco::TransientTrack> matchedTracks;
-     std::vector<int> matchedVertexVector;
      for (size_t j=0;j<trksToVertex.size();j++){
 
        reco::TransientTrack t_trk = trksToVertex[j];
 
        if (jvtx.trackWeight(t_trk)>vtxWeight_){
-	 matchedTracks.push_back(t_trk);
-	 matchedVertexVector.push_back(vertexVector[j]);
-
          GlobalVector p3 = t_trk.trajectoryStateClosestToPoint(jvtx.position()).momentum();
  	 vtxP4 += ROOT::Math::LorentzVector<ROOT::Math::PxPyPzM4D<double> >(p3.x(),p3.y(),p3.z(),0.13957018);
          charge+=t_trk.track().charge();
